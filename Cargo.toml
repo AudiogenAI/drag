@@ -3,6 +3,8 @@ name = "drag"
 version = "0.4.0"
 description = "Start a drag operation out of a window"
 authors = ["CrabNebula Ltd."]
+edition = "2021"
+license = "MIT"
 
 [dependencies]
 raw-window-handle = "0.5"
