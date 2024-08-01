@@ -86,6 +86,7 @@
 #[macro_use]
 extern crate objc;
 
+use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 mod platform_impl;
@@ -116,8 +117,7 @@ pub enum Error {
     FailedToGetCursorPosition,
 }
 
-#[derive(Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum DragResult {
     Dropped,
     Cancel,
@@ -147,9 +147,7 @@ pub struct Options {
 }
 
 /// An image definition.
-#[derive(Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-#[cfg_attr(feature = "serde", serde(untagged))]
+#[derive(Debug, Serialize, Deserialize)]
 pub enum Image {
     /// A path to a image.
     File(PathBuf),
@@ -160,8 +158,7 @@ pub enum Image {
 /// Logical position of the cursor.
 ///
 /// - **Windows**: Currently the win32 API for logical position reports physical position as well, due to the complicated nature of potential multiple monitor with different scaling there's no trivial solution to be incorporated.
-#[derive(Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CursorPosition {
     pub x: i32,
     pub y: i32,
