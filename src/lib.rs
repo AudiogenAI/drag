@@ -2,86 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-License-Identifier: MIT
 
-//!Start a drag operation out of a window on macOS, Windows and Linux (via GTK).
-//!
-//! Tested for [tao](https://github.com/tauri-apps/tao) (latest),
-//! [winit](https://github.com/rust-windowing/winit) (latest),
-//! [wry](https://github.com/tauri-apps/wry) (v0.24) and
-//! [tauri](https://github.com/tauri-apps/tauri) (v1) windows.
-//!
-//! Due to the GTK-based implementation, winit currently cannot leverage this crate on Linux yet.
-//!
-//! - Add the `drag` dependency:
-//!
-//! `$ cargo add drag`
-//!
-//! - Use the `drag::start_drag` function. It takes a `&T: raw_window_handle::HasRawWindowHandle` type on macOS and Windows, and a `&gtk::ApplicationWindow` on Linux:
-//!
-//! - tao:
-//!   ```rust,no_run
-//!   let event_loop = tao::event_loop::EventLoop::new();
-//!   let window = tao::window::WindowBuilder::new().build(&event_loop).unwrap();
-//!
-//!   let item = drag::DragItem::Files(vec![std::fs::canonicalize("./examples/icon.png").unwrap()]);
-//!   let preview_icon = drag::Image::File("./examples/icon.png".into());
-//!
-//!   drag::start_drag(
-//!     #[cfg(target_os = "linux")]
-//!     {
-//!       use tao::platform::unix::WindowExtUnix;
-//!       window.gtk_window()
-//!     },
-//!     #[cfg(not(target_os = "linux"))]
-//!     &window,
-//!     item,
-//!     preview_icon,
-//!     |result, cursor_position| {
-//!       println!("drag result: {result:?}");
-//!     },
-//!     drag::Options::default(),
-//!   );
-//!   ```
-//!
-//!   - wry:
-//!   ```rust,no_run
-//!   let event_loop = wry::application::event_loop::EventLoop::new();
-//!   let window = wry::application::window::WindowBuilder::new().build(&event_loop).unwrap();
-//!   let webview = wry::webview::WebViewBuilder::new(window).unwrap().build().unwrap();
-//!
-//!   let item = drag::DragItem::Files(vec![std::fs::canonicalize("./examples/icon.png").unwrap()]);
-//!   let preview_icon = drag::Image::File("./examples/icon.png".into());
-//!
-//!   drag::start_drag(
-//!     #[cfg(target_os = "linux")]
-//!     {
-//!       use wry::application::platform::unix::WindowExtUnix;
-//!       webview.window().gtk_window()
-//!     },
-//!     #[cfg(not(target_os = "linux"))]
-//!     &webview.window(),
-//!     item,
-//!     preview_icon,
-//!     |result, cursor_position| {
-//!       println!("drag result: {result:?}");
-//!     },
-//!     drag::Options::default(),
-//!   );
-//!   ```
-//!
-//!   - winit:
-//!   ```rust,no_run
-//!   let event_loop = winit::event_loop::EventLoop::new().unwrap();
-//!   let window = winit::window::WindowBuilder::new().build(&event_loop).unwrap();
-//!
-//!   let item = drag::DragItem::Files(vec![std::fs::canonicalize("./examples/icon.png").unwrap()]);
-//!   let preview_icon = drag::Image::File("./examples/icon.png".into());
-//!
-//!   # #[cfg(not(target_os = "linux"))]
-//!   let _ = drag::start_drag(&window, item, preview_icon, |result, cursor_position| {
-//!     println!("drag result: {result:?}");
-//!   }, Default::default());
-//!   ```
-
 #[cfg(target_os = "macos")]
 #[macro_use]
 extern crate objc;
@@ -131,10 +51,6 @@ pub enum DragItem {
     ///
     /// The paths must be absolute.
     Files(Vec<PathBuf>),
-    /// Data to share with another app.
-    ///
-    /// - **Windows**: Not supported. Will result in a dummy drag operation of current folder that will be cancelled upon dropping.
-    /// - **Linux (gtk)**: Not supported. Will result in a dummy drag operation that contains nothing to drop.
     Data {
         provider: DataProvider,
         types: Vec<String>,
