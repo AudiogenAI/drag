@@ -21,12 +21,16 @@ use windows::{
         System::Com::*,
         System::Memory::*,
         System::Ole::{DoDragDrop, OleInitialize},
-        System::Ole::{IDropSource, IDropSource_Impl, CF_HDROP, DROPEFFECT, DROPEFFECT_COPY},
+        System::Ole::{
+            IDropSource, IDropSource_Impl, CF_HDROP, DROPEFFECT,
+            DROPEFFECT_COPY,
+        },
         System::SystemServices::{MK_LBUTTON, MODIFIERKEYS_FLAGS},
         UI::{
             Shell::{
-                BHID_DataObject, CLSID_DragDropHelper, Common, IDragSourceHelper, IShellItemArray,
-                SHCreateDataObject, SHCreateShellItemArrayFromIDLists, DROPFILES, SHDRAGIMAGE,
+                BHID_DataObject, CLSID_DragDropHelper, Common,
+                IDragSourceHelper, IShellItemArray, SHCreateDataObject,
+                SHCreateShellItemArrayFromIDLists, DROPFILES, SHDRAGIMAGE,
             },
             WindowsAndMessaging::GetCursorPos,
         },
@@ -67,7 +71,11 @@ impl DropSource {
 
 #[allow(non_snake_case)]
 impl IDropSource_Impl for DropSource {
-    fn QueryContinueDrag(&self, fescapepressed: BOOL, grfkeystate: MODIFIERKEYS_FLAGS) -> HRESULT {
+    fn QueryContinueDrag(
+        &self,
+        fescapepressed: BOOL,
+        grfkeystate: MODIFIERKEYS_FLAGS,
+    ) -> HRESULT {
         if fescapepressed.as_bool() {
             DRAGDROP_S_CANCEL
         } else if (grfkeystate & MK_LBUTTON) == MODIFIERKEYS_FLAGS(0) {
@@ -90,8 +98,14 @@ impl DummyDropSource {
 
 #[allow(non_snake_case)]
 impl IDropSource_Impl for DummyDropSource {
-    fn QueryContinueDrag(&self, fescapepressed: BOOL, grfkeystate: MODIFIERKEYS_FLAGS) -> HRESULT {
-        if fescapepressed.as_bool() || (grfkeystate & MK_LBUTTON) == MODIFIERKEYS_FLAGS(0) {
+    fn QueryContinueDrag(
+        &self,
+        fescapepressed: BOOL,
+        grfkeystate: MODIFIERKEYS_FLAGS,
+    ) -> HRESULT {
+        if fescapepressed.as_bool()
+            || (grfkeystate & MK_LBUTTON) == MODIFIERKEYS_FLAGS(0)
+        {
             DRAGDROP_S_CANCEL
         } else {
             S_OK
@@ -110,7 +124,8 @@ impl DataObject {
         unsafe {
             Self {
                 files,
-                inner_shell_obj: SHCreateDataObject(None, None, None).unwrap(),
+                inner_shell_obj: SHCreateDataObject(None, None, None)
+                    .unwrap(),
             }
         }
     }
@@ -128,7 +143,8 @@ impl DataObject {
     fn clone_drop_hglobal(&self) -> Result<HGLOBAL> {
         let mut buffer = Vec::new();
         for path in &self.files {
-            let wide_path: Vec<u16> = path.as_os_str().encode_wide().chain(once(0)).collect();
+            let wide_path: Vec<u16> =
+                path.as_os_str().encode_wide().chain(once(0)).collect();
             buffer.extend(wide_path);
         }
         buffer.push(0);
@@ -156,7 +172,11 @@ impl IDataObject_Impl for DataObject {
         }
     }
 
-    fn GetDataHere(&self, _pformatetc: *const FORMATETC, _pmedium: *mut STGMEDIUM) -> Result<()> {
+    fn GetDataHere(
+        &self,
+        _pformatetc: *const FORMATETC,
+        _pmedium: *mut STGMEDIUM,
+    ) -> Result<()> {
         Err(Error::new(DV_E_FORMATETC, HSTRING::new()))
     }
 
@@ -210,7 +230,10 @@ impl IDataObject_Impl for DataObject {
     }
 }
 
-pub fn start_drag<W: HasRawWindowHandle, F: Fn(DragResult, CursorPosition) + Send + 'static>(
+pub fn start_drag<
+    W: HasRawWindowHandle,
+    F: Fn(DragResult, CursorPosition) + Send + 'static,
+>(
     handle: &W,
     item: DragItem,
     image: Image,
@@ -232,15 +255,19 @@ pub fn start_drag<W: HasRawWindowHandle, F: Fn(DragResult, CursorPosition) + Sen
                     paths.push(dunce::canonicalize(f)?);
                 }
 
-                let data_object: IDataObject = get_file_data_object(&paths).unwrap();
+                let data_object: IDataObject =
+                    get_file_data_object(&paths).unwrap();
                 let drop_source: IDropSource = DropSource::new().into();
 
                 unsafe {
                     if let Some(drag_image) = get_drag_image(image) {
-                        if let Ok(helper) =
-                            create_instance::<IDragSourceHelper>(&CLSID_DragDropHelper)
-                        {
-                            let _ = helper.InitializeFromBitmap(&drag_image, &data_object);
+                        if let Ok(helper) = create_instance::<IDragSourceHelper>(
+                            &CLSID_DragDropHelper,
+                        ) {
+                            let _ = helper.InitializeFromBitmap(
+                                &drag_image,
+                                &data_object,
+                            );
                         }
                     }
 
@@ -254,10 +281,16 @@ pub fn start_drag<W: HasRawWindowHandle, F: Fn(DragResult, CursorPosition) + Sen
                     let mut pt = POINT { x: 0, y: 0 };
                     GetCursorPos(&mut pt)?;
                     if drop_result == DRAGDROP_S_DROP {
-                        on_drop_callback(DragResult::Dropped, CursorPosition { x: pt.x, y: pt.y });
+                        on_drop_callback(
+                            DragResult::Dropped,
+                            CursorPosition { x: pt.x, y: pt.y },
+                        );
                     } else {
                         // DRAGDROP_S_CANCEL
-                        on_drop_callback(DragResult::Cancel, CursorPosition { x: pt.x, y: pt.y });
+                        on_drop_callback(
+                            DragResult::Cancel,
+                            CursorPosition { x: pt.x, y: pt.y },
+                        );
                     }
                 }
             }
@@ -271,15 +304,19 @@ pub fn start_drag<W: HasRawWindowHandle, F: Fn(DragResult, CursorPosition) + Sen
 
                 let paths = vec![dunce::canonicalize("./")?];
 
-                let data_object: IDataObject = get_file_data_object(&paths).unwrap();
+                let data_object: IDataObject =
+                    get_file_data_object(&paths).unwrap();
                 let drop_source: IDropSource = DummyDropSource::new().into();
 
                 unsafe {
                     if let Some(drag_image) = get_drag_image(image) {
-                        if let Ok(helper) =
-                            create_instance::<IDragSourceHelper>(&CLSID_DragDropHelper)
-                        {
-                            let _ = helper.InitializeFromBitmap(&drag_image, &data_object);
+                        if let Ok(helper) = create_instance::<IDragSourceHelper>(
+                            &CLSID_DragDropHelper,
+                        ) {
+                            let _ = helper.InitializeFromBitmap(
+                                &drag_image,
+                                &data_object,
+                            );
                         }
                     }
 
@@ -293,10 +330,16 @@ pub fn start_drag<W: HasRawWindowHandle, F: Fn(DragResult, CursorPosition) + Sen
                     let mut pt = POINT { x: 0, y: 0 };
                     GetCursorPos(&mut pt)?;
                     if drop_result == DRAGDROP_S_DROP {
-                        on_drop_callback(DragResult::Dropped, CursorPosition { x: pt.x, y: pt.y });
+                        on_drop_callback(
+                            DragResult::Dropped,
+                            CursorPosition { x: pt.x, y: pt.y },
+                        );
                     } else {
                         // DRAGDROP_S_CANCEL
-                        on_drop_callback(DragResult::Cancel, CursorPosition { x: pt.x, y: pt.y });
+                        on_drop_callback(
+                            DragResult::Cancel,
+                            CursorPosition { x: pt.x, y: pt.y },
+                        );
                     }
                 }
             }
@@ -356,7 +399,9 @@ fn get_hglobal(size: usize, buffer: Vec<u16>) -> Result<HGLOBAL> {
     Ok(handle)
 }
 
-pub fn create_instance<T: Interface + ComInterface>(clsid: &GUID) -> Result<T> {
+pub fn create_instance<T: Interface + ComInterface>(
+    clsid: &GUID,
+) -> Result<T> {
     unsafe { CoCreateInstance(clsid, None, CLSCTX_ALL) }
 }
 
@@ -379,7 +424,10 @@ fn get_shell_item_array(paths: &[PathBuf]) -> Option<IShellItemArray> {
 
 fn get_file_item_id(path: &Path) -> *mut Common::ITEMIDLIST {
     unsafe {
-        let wide_path: Vec<u16> = path.as_os_str().encode_wide().chain(once(0)).collect();
-        windows::Win32::UI::Shell::ILCreateFromPathW(PCWSTR::from_raw(wide_path.as_ptr()))
+        let wide_path: Vec<u16> =
+            path.as_os_str().encode_wide().chain(once(0)).collect();
+        windows::Win32::UI::Shell::ILCreateFromPathW(PCWSTR::from_raw(
+            wide_path.as_ptr(),
+        ))
     }
 }
