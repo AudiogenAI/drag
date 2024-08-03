@@ -1,6 +1,6 @@
 [package]
 name = "drag"
-version = "0.8.0"
+version = "0.9.0"
 description = "Start a drag operation out of a window"
 authors = ["CrabNebula Ltd.", "AudiogenAI"]
 edition = "2021"
