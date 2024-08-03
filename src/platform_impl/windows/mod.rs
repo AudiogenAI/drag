@@ -1,10 +1,7 @@
 // Copyright 2023-2023 CrabNebula Ltd.
 // SPDX-License-Identifier: Apache-2.0
 // SPDX-License-Identifier: MIT
-
-use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
-
-use crate::{CursorPosition, DragItem, DragResult, Image, Options};
+use crate::{CursorPosition, DragItem, DragResult, Options};
 
 use std::{
     ffi::c_void,
@@ -17,7 +14,6 @@ use windows::{
     core::*,
     Win32::{
         Foundation::*,
-        Graphics::Gdi::{GetObjectW, BITMAP},
         System::Com::*,
         System::Memory::*,
         System::Ole::{DoDragDrop, OleInitialize},
@@ -28,9 +24,9 @@ use windows::{
         System::SystemServices::{MK_LBUTTON, MODIFIERKEYS_FLAGS},
         UI::{
             Shell::{
-                BHID_DataObject, CLSID_DragDropHelper, Common,
-                IDragSourceHelper, IShellItemArray, SHCreateDataObject,
-                SHCreateShellItemArrayFromIDLists, DROPFILES, SHDRAGIMAGE,
+                BHID_DataObject, Common,
+                IShellItemArray, SHCreateDataObject,
+                SHCreateShellItemArrayFromIDLists, DROPFILES
             },
             WindowsAndMessaging::{GetCursorPos, IsWindow},
         },
