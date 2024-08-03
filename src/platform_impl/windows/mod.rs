@@ -32,12 +32,10 @@ use windows::{
                 IDragSourceHelper, IShellItemArray, SHCreateDataObject,
                 SHCreateShellItemArrayFromIDLists, DROPFILES, SHDRAGIMAGE,
             },
-            WindowsAndMessaging::GetCursorPos,
+            WindowsAndMessaging::{GetCursorPos, IsWindow},
         },
     },
 };
-
-mod image;
 
 static mut OLE_RESULT: Result<()> = Ok(());
 static OLE_UNINITIALIZE: Once = Once::new();
@@ -231,16 +229,16 @@ impl IDataObject_Impl for DataObject {
 }
 
 pub fn start_drag<
-    W: HasRawWindowHandle,
     F: Fn(DragResult, CursorPosition) + Send + 'static,
 >(
-    handle: &W,
+    handle: &isize,
     item: DragItem,
-    image: Image,
     on_drop_callback: F,
     _options: Options,
 ) -> crate::Result<()> {
-    if let RawWindowHandle::Win32(_w) = handle.raw_window_handle() {
+
+    let window = HWND(*handle);
+    if unsafe { IsWindow(window) }.as_bool() {
         match item {
             DragItem::Files(files) => {
                 init_ole();
@@ -260,17 +258,6 @@ pub fn start_drag<
                 let drop_source: IDropSource = DropSource::new().into();
 
                 unsafe {
-                    if let Some(drag_image) = get_drag_image(image) {
-                        if let Ok(helper) = create_instance::<IDragSourceHelper>(
-                            &CLSID_DragDropHelper,
-                        ) {
-                            let _ = helper.InitializeFromBitmap(
-                                &drag_image,
-                                &data_object,
-                            );
-                        }
-                    }
-
                     let mut out_dropeffect = DROPEFFECT::default();
                     let drop_result = DoDragDrop(
                         &data_object,
@@ -309,17 +296,6 @@ pub fn start_drag<
                 let drop_source: IDropSource = DummyDropSource::new().into();
 
                 unsafe {
-                    if let Some(drag_image) = get_drag_image(image) {
-                        if let Ok(helper) = create_instance::<IDragSourceHelper>(
-                            &CLSID_DragDropHelper,
-                        ) {
-                            let _ = helper.InitializeFromBitmap(
-                                &drag_image,
-                                &data_object,
-                            );
-                        }
-                    }
-
                     let mut out_dropeffect = DROPEFFECT::default();
                     let drop_result = DoDragDrop(
                         &data_object,
@@ -348,37 +324,6 @@ pub fn start_drag<
     } else {
         Err(crate::Error::UnsupportedWindowHandle)
     }
-}
-
-fn get_drag_image(image: Image) -> Option<SHDRAGIMAGE> {
-    let hbitmap = match image {
-        Image::Raw(bytes) => image::read_bytes_to_hbitmap(&bytes).ok(),
-        Image::File(path) => image::read_path_to_hbitmap(&path).ok(),
-    };
-    hbitmap.map(|hbitmap| unsafe {
-        // get image size
-        let mut bitmap: BITMAP = BITMAP::default();
-        let (width, height) = if 0
-            == GetObjectW(
-                hbitmap,
-                std::mem::size_of::<BITMAP>() as i32,
-                Some(&mut bitmap as *mut BITMAP as *mut c_void),
-            ) {
-            (128, 128)
-        } else {
-            (bitmap.bmWidth, bitmap.bmHeight)
-        };
-
-        SHDRAGIMAGE {
-            sizeDragImage: SIZE {
-                cx: width,
-                cy: height,
-            },
-            ptOffset: POINT { x: 0, y: 0 },
-            hbmpDragImage: hbitmap,
-            crColorKey: COLORREF(0x00000000),
-        }
-    })
 }
 
 fn get_hglobal(size: usize, buffer: Vec<u16>) -> Result<HGLOBAL> {
